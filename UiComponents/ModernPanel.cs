@@ -27,6 +27,7 @@ namespace UiComponents
             get { return bordersize; }
             set { 
                 bordersize = value;
+                this.Invalidate();
             }
 
         }

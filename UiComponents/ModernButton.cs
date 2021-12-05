@@ -59,6 +59,7 @@ namespace UiComponents
             set
             {
                 bordersize = value;
+                this.Invalidate();
             }
         }
 
