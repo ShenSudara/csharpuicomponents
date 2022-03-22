@@ -17,6 +17,91 @@ namespace UiComponents
         private Color bordercolor = Color.Black;
         private bool roundedenable = false;
 
+        //for the gradient
+        private Color color1;
+        private Color color2;
+        private bool enablegradient = false;
+        private float angle = 0.0f;
+
+        //for the hover colors
+        private Color hovercolor1 = Color.White;
+        private Color hovercolor2 = Color.White;
+        private bool hoverenable;
+        private float hoverangle = 0.0f;
+
+
+        //keep default values
+        private Color defaultcolor1;
+        private Color defaultcolor2;
+        private float defaultangle;
+
+
+
+        //for the hover color
+        [Category("Hover Control")]
+        public Color HoverColor1 { get => hovercolor1; set => hovercolor1 = value; }
+
+        [Category("Hover Control")]
+        public Color HoverColor2 { get => hovercolor2; set => hovercolor2 = value; }
+
+        [Category("Hover Control")]
+        public bool HoverEnable { get => hoverenable; set => hoverenable = value; }
+
+        [Category("Hover Control")]
+        public float HoverAngle { get => hoverangle; set => hoverangle = value; }
+
+
+
+        //enable the gradient
+        [Category("Gradient Control")]
+        public bool GradientEnable
+        {
+            get {
+                return enablegradient;
+            }
+            set {
+                enablegradient = value;
+                this.Invalidate();
+            }
+        }
+
+
+        //gradient color - I'll remove the color changes because of it will reduce more cpu time
+        [Category("Gradient Control")]
+        public Color Color1 {
+            get {
+                return color1;
+            }
+            set
+            {
+                this.color1 = value;
+            }
+        }
+
+        [Category("Gradient Control")]
+        public Color Color2
+        {
+            get {
+                return color2;
+            }
+            set {
+                this.color2 = value;
+            }
+        }
+        [Category("Gradient Control")]
+        public float Angle
+        {
+            get {
+                return angle;
+            }
+
+            set {
+                this.angle = value;
+            }
+        }
+
+
+
         //this for the properties
         [Category("Rounded Control")]
         public bool RoundEnable
@@ -48,7 +133,7 @@ namespace UiComponents
                     borderradius = value;
                 else
                     borderradius = this.Width;
-                this.Invalidate();
+                    this.Invalidate();
             }
         }
 
@@ -73,10 +158,14 @@ namespace UiComponents
             }
         }
 
+
+
         public ModernButton()
         {
             this.Size = new Size(100, 50);
             this.FlatStyle = FlatStyle.Flat;
+            Color1 = this.BackColor;
+            Color2 = this.BackColor;
 
         }
 
@@ -109,16 +198,19 @@ namespace UiComponents
                 //paths and pens for the drawing
                 using (GraphicsPath surfacepath = getButtonPath(surfacerect, borderradius))
                 using (GraphicsPath borderpath = getButtonPath(borderrect, borderradius))
-                using (Pen surfacepen = new Pen(this.BackColor, 2))
+                using(Pen surfacepen = new Pen(this.BackColor,2))
+                using (LinearGradientBrush lgb = new LinearGradientBrush(surfacerect, Color1, Color2, Angle))
                 using (Pen borderpen = new Pen(bordercolor, bordersize))
                 {
                     //get new region and draw the surface
                     this.Region = new Region(surfacepath);
-                    pevent.Graphics.DrawPath(surfacepen, surfacepath);
+                    if (GradientEnable || HoverEnable)
+                        pevent.Graphics.FillPath(lgb, surfacepath);
+                    else
+                        pevent.Graphics.DrawPath(surfacepen, surfacepath);
 
                     borderpen.Alignment = PenAlignment.Inset;
-
-                    //draw the boreder
+                    //draw the border
                     if (bordersize >= 1)
                         pevent.Graphics.DrawPath(borderpen, borderpath);
 
@@ -133,12 +225,42 @@ namespace UiComponents
                 using(Pen borderpen = new Pen(this.bordercolor, bordersize))
                 {
                     borderpen.Alignment = PenAlignment.Inset;
-                    if (bordersize >= 1)
-                        pevent.Graphics.DrawRectangle(borderpen,0,0,borderrect.Width,borderrect.Height);
+                    using (LinearGradientBrush lgb = new LinearGradientBrush(surfacerect, Color1, Color2, Angle)) 
+                    using(SolidBrush sb = new SolidBrush(this.BackColor))
+                    {
+
+                        //if border size more than 1 draw the border
+                        if (bordersize >= 1)
+                        {
+                            pevent.Graphics.DrawRectangle(borderpen, 0, 0, borderrect.Width, borderrect.Height);
+                            if (GradientEnable || HoverEnable)
+                                pevent.Graphics.FillRectangle(lgb, surfacerect);
+                            else
+                                pevent.Graphics.FillRectangle(sb,surfacerect);
+                        }
+                        else {
+                            if (GradientEnable)
+                                pevent.Graphics.FillRectangle(lgb, surfacerect);
+                            else
+                                pevent.Graphics.FillRectangle(sb, surfacerect);
+                        }
+                            
+                    }
+
                 }
 
             }
+
+            //draw string
+            using(SolidBrush drawbrush = new SolidBrush(this.ForeColor))
+            using(StringFormat drawformat = new StringFormat())
+            {
+                SizeF fontsize = new SizeF();
+                fontsize = pevent.Graphics.MeasureString(this.Text, this.Font);
+                pevent.Graphics.DrawString(this.Text, this.Font, drawbrush,(this.Width/2) - (fontsize.Width/2), (this.Height / 2) - (fontsize.Height / 2), drawformat); 
+            }
         }
+
 
         //when even is popup if it is back color changed or resizing this will run thhose function
         protected override void OnHandleCreated(EventArgs e)
@@ -146,6 +268,30 @@ namespace UiComponents
             base.OnHandleCreated(e);
             this.BackColorChanged += ModernButton_BackColorChanged;
             this.Resize += ModernButton_Resize;
+        }
+
+        protected override void OnMouseLeave(EventArgs e)
+        {
+            if (HoverEnable) {
+                Color1 = defaultcolor1;
+                Color2 = defaultcolor2;
+                Angle = defaultangle;
+                GradientEnable = true;
+
+            }
+        }
+        protected override void OnMouseHover(EventArgs e)
+        {
+            if (HoverEnable) {
+                defaultcolor1 = Color1;
+                defaultcolor2 = Color2;
+                defaultangle = Angle;
+
+                Color1 = HoverColor1;
+                Color2 = HoverColor2;
+                Angle = HoverAngle;
+                GradientEnable = true;
+            }
         }
 
         //prevent the buutoon resizing go out of the scope
