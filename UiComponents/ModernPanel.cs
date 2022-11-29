@@ -13,14 +13,45 @@ namespace UiComponents
     public class ModernPanel : Panel
     {
         //attributes for the modern panel
-        private int bordersize = 0;
-        private float borderradius = 40;
-        private Color bordercolor = Color.Black;
-        private Color backcolor1 = Color.White;
-        private Color backcolor2 = Color.White;
-        private float gradientdirection = 0;
+        private bool roundedEnable = false;
+        private int bordersize = 1;
+        private float borderRadius = 1;
+        private Color borderColor = Color.Black;
+        private bool gradientEnable = false;
+        private Color gradientColor1 = Color.White;
+        private Color gradientColor2 = Color.White;
+        private float gradientDirection = 0;
 
-        //properties of the variable
+
+        //properties of the rounded shape
+        [Category("RoundedControl")]
+        public bool RoundedEnable
+        {
+            get
+            {
+                return roundedEnable;
+            }
+            set
+            {
+                if (value)
+                {
+                    if (BorderRadius <= 1)
+                    {
+                        BorderRadius = 1;
+                    }
+                }
+                else
+                {
+                    if (BorderRadius <= 0)
+                    {
+                        BorderRadius = 0;
+                    }
+                }
+                roundedEnable = value;
+                this.Invalidate();
+            }
+        }
+
         [Category("RoundedControl")]
         public int BorderSize
         {
@@ -35,12 +66,43 @@ namespace UiComponents
         [Category("RoundedControl")]
         public float BorderRadius
         {
-            get { return borderradius; }
+            get { return borderRadius; }
             set {
-                if (value <= this.Height)
-                    borderradius = value;
+                if (roundedEnable)
+                {
+                    if (value <= 1)
+                        borderRadius = 1;
+                    else
+                    {
+                        //prevent the width and height went out wrong
+                        if (value <= this.Height)
+                            borderRadius = value;
+                        else
+                            borderRadius = this.Height;
+                        if (value <= this.Width)
+                            borderRadius = value;
+                        else
+                            borderRadius = this.Width;
+                    }
+                }
                 else
-                    borderradius = this.Height;
+                {
+                    if (value <= 0)
+                        borderRadius = 0;
+                    else
+                    {
+                        //prevent the width and height went out wrong
+                        if (value <= this.Height)
+                            borderRadius = value;
+                        else
+                            borderRadius = this.Height;
+                        if (value <= this.Width)
+                            borderRadius = value;
+                        else
+                            borderRadius = this.Width;
+                    }
+
+                }
                 this.Invalidate();
             }
         }
@@ -48,41 +110,58 @@ namespace UiComponents
         [Category("RoundedControl")]
         public Color BorderColor
         {
-            get { return bordercolor; }
+            get { return borderColor; }
             set { 
-                bordercolor = value;
+                borderColor = value;
+                this.Invalidate();
+            }
+        }
+
+        //properties of the rounded shape
+        [Category("GradientControl")]
+        public bool GradientEnable
+        {
+            get
+            {
+                return gradientEnable;
+            }
+            set
+            {
+                gradientEnable = value;
                 this.Invalidate();
             }
         }
 
         [Category("GradientControl")]
-        public Color BackColor1
+        public Color GradientColor1
         {
-            get { return backcolor1; }
-            set { 
-                backcolor1 = value;
+            get { return gradientColor1; }
+            set {
+                gradientColor1 = value;
                 this.Invalidate();
             }
         }
 
         [Category("GradientControl")]
-        public Color BackColor2
+        public Color GradientColor2
         {
-            get { return backcolor2; }
+            get { return gradientColor2; }
             set { 
-                backcolor2 = value;
+                gradientColor2 = value;
                 this.Invalidate();
             }
         }
         [Category("GradientControl")]
         public float GradientAngle
         {
-            get { return gradientdirection; }
+            get { return gradientDirection; }
             set {
-                gradientdirection = value;
+                gradientDirection = value;
                 this.Invalidate();
             }
         }
+
+
 
 
         //constructor for the default apperancne
@@ -108,27 +187,26 @@ namespace UiComponents
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
-            //for the best drawing
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
 
             //area rectangle of the button and border
             RectangleF surfacerect = new RectangleF(0, 0, this.Width, this.Height);
             RectangleF borderrect = new RectangleF(0, 0, this.Width - 1, this.Height - 1);
 
-            if (borderradius >= 2) //rounded button
+            if (borderRadius >= 2) //rounded button
             {
-                //paths and pens for the drawing
-                using (GraphicsPath surfacepath = getPanelPath(surfacerect, borderradius))
-                using (GraphicsPath borderpath = getPanelPath(borderrect, borderradius))
-                using (LinearGradientBrush surfacelgb = new LinearGradientBrush(surfacerect,backcolor1,backcolor2, gradientdirection))
-                using (Pen borderpen = new Pen(bordercolor, bordersize))
+                using (GraphicsPath surfacepath = getPanelPath(surfacerect, borderRadius))
+                using (GraphicsPath borderpath = getPanelPath(borderrect, borderRadius))
+                using (LinearGradientBrush surfacelgb = new LinearGradientBrush(surfacerect, gradientColor1, gradientColor2, gradientDirection))
+                using (Pen borderpen = new Pen(borderColor, bordersize))
+                using(Pen surfacePen = new Pen(this.BackColor))
                 {
-                    //get new region and draw the surface
                     this.Region = new Region(surfacepath);
-                    e.Graphics.FillPath(surfacelgb, surfacepath);
-
+                    if (gradientEnable)
+                        e.Graphics.FillPath(surfacelgb, surfacepath);
+                    else
+                        e.Graphics.DrawPath(surfacePen, surfacepath);
                     borderpen.Alignment = PenAlignment.Inset;
-
                     //draw the boreder
                     if (bordersize >= 1)
                         e.Graphics.DrawPath(borderpen, borderpath);
@@ -137,14 +215,16 @@ namespace UiComponents
             }
             else //normal bvutton
             {
-                //for the new region
                 this.Region = new Region(surfacerect);
-
                 //border
-                using (LinearGradientBrush surfacelgb = new LinearGradientBrush(surfacerect, backcolor1, backcolor2, gradientdirection))
-                using (Pen borderpen = new Pen(this.bordercolor, bordersize))
+                using (LinearGradientBrush surfacelgb = new LinearGradientBrush(surfacerect, gradientColor1, gradientColor2, gradientDirection))
+                using(SolidBrush sb = new SolidBrush(this.BackColor))
+                using (Pen borderpen = new Pen(this.borderColor, bordersize))
                 {
-                    e.Graphics.FillRectangle(surfacelgb,surfacerect);
+                    if (gradientEnable)
+                        e.Graphics.FillRectangle(surfacelgb, surfacerect);
+                    else
+                        e.Graphics.FillRectangle(sb,surfacerect);
                     borderpen.Alignment = PenAlignment.Inset;
                     if (bordersize >= 1)
                         e.Graphics.DrawRectangle(borderpen, 0, 0, borderrect.Width, borderrect.Height);
@@ -168,10 +248,10 @@ namespace UiComponents
 
         private void ModernPanel_Resize(object sender, EventArgs e)
         {
-            if (this.Height < borderradius)
-                borderradius = this.Height;
-            if (this.Width < borderradius)
-                borderradius = this.Width;
+            if (this.Height < borderRadius)
+                borderRadius = this.Height;
+            if (this.Width < borderRadius)
+                borderRadius = this.Width;
         }
     }
 }
